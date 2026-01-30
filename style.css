@@ -1361,3 +1361,13 @@ button:hover {
     width: 36px;
     height: 36px;
 }
+
+
+.canvas-container.multi-mode {
+    max-width: 600px;
+}
+
+#drawingCanvas {
+    width: 100%;
+    height: 100%;
+}
