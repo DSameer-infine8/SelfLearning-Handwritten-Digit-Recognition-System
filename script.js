@@ -4,26 +4,59 @@
 const canvas = document.getElementById("drawingCanvas");
 const ctx = canvas.getContext("2d");
 const canvasGuide = document.getElementById("canvasGuide");
+const canvasContainer = document.getElementById("canvasContainer");
 
 let isDrawing = false;
 let brushSize = 24;
+let isMultiMode = false;
 
-/* High DPI fix */
+/* High DPI */
 const ratio = window.devicePixelRatio || 1;
-const size = 280;
+const BASE_SIZE = 280;
+const BRUSH_COLOR = "white";
 
-canvas.width = size * ratio;
-canvas.height = size * ratio;
-canvas.style.width = size + "px";
-canvas.style.height = size + "px";
-ctx.scale(ratio, ratio);
 
-/* Initial canvas background */
-ctx.fillStyle = "black";
-ctx.fillRect(0, 0, size, size);
-ctx.strokeStyle = "white";
-ctx.lineCap = "round";
-ctx.lineJoin = "round";
+function initCanvas(width = BASE_SIZE, height = BASE_SIZE) {
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, width, height);
+
+    ctx.strokeStyle = BRUSH_COLOR;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = brushSize;
+}
+
+initCanvas();
+
+function resizeCanvas(width, height = 280) {
+    const ratio = window.devicePixelRatio || 1;
+
+    canvas.style.width = width + "px";
+    canvas.style.height = height + "px";
+
+    canvas.width = width * ratio;
+    canvas.height = height * ratio;
+
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+    // Background
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Brush reset
+    ctx.strokeStyle = BRUSH_COLOR;
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+}
+
 
 /*********************************************************
  * Drawing Logic
@@ -43,15 +76,11 @@ canvas.addEventListener("mousemove", (e) => {
     ctx.stroke();
 });
 
-canvas.addEventListener("mouseup", stopDrawing);
-canvas.addEventListener("mouseleave", stopDrawing);
-
-function stopDrawing() {
-    isDrawing = false;
-}
+canvas.addEventListener("mouseup", () => (isDrawing = false));
+canvas.addEventListener("mouseleave", () => (isDrawing = false));
 
 /*********************************************************
- * Brush Slider Logic
+ * Brush Slider
  *********************************************************/
 const slider = document.getElementById("brushSlider");
 const sliderFill = document.getElementById("sliderFill");
@@ -61,9 +90,8 @@ function updateBrush() {
     brushSize = Number(slider.value);
     brushValue.textContent = brushSize;
 
-    const min = slider.min;
-    const max = slider.max;
-    const percent = ((brushSize - min) / (max - min)) * 100;
+    const percent =
+        ((brushSize - slider.min) / (slider.max - slider.min)) * 100;
     sliderFill.style.width = percent + "%";
 }
 
@@ -74,48 +102,268 @@ updateBrush();
  * Clear Canvas
  *********************************************************/
 document.getElementById("clearBtn").addEventListener("click", () => {
-    const ratio = window.devicePixelRatio || 1;
-
-    // Reset transform & clear everything
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Restore DPI scale
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-
-    // Black background
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, canvas.width / ratio, canvas.height / ratio);
-
-    // Restore brush
-    ctx.strokeStyle = "white";
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.lineWidth = brushSize;
+    initCanvas(isMultiMode ? 600 : 280, 280);
 
     canvasGuide.classList.remove("hidden");
     disablePredict();
-    resetResultUI();
     resetFeedback();
+
+    if (isMultiMode) {
+        // Stay in MULTI mode
+        resetMultiResultUI();
+        multiResults.classList.remove("hidden");
+        singleResults.classList.add("hidden");
+    } else {
+        // Stay in SINGLE mode
+        resetResultUI();
+        singleResults.classList.remove("hidden");
+        multiResults.classList.add("hidden");
+    }
 });
 
 
 /*********************************************************
- * Predict Button Enable / Disable
+ * Predict Button
  *********************************************************/
 const predictBtn = document.getElementById("predictSingleBtn");
 
 function enablePredict() {
     predictBtn.disabled = false;
 }
-
 function disablePredict() {
     predictBtn.disabled = true;
 }
 
+/*********************************************************
+ * Loading Overlay
+ *********************************************************/
+const loader = document.getElementById("loadingOverlay");
+function showLoading() {
+    loader.classList.remove("hidden");
+}
+function hideLoading() {
+    loader.classList.add("hidden");
+}
 
 /*********************************************************
- * API call for Prediction
+ * SINGLE DIGIT (Dummy)
+ *********************************************************/
+predictBtn.addEventListener("click", () => {
+    if (isMultiMode) {
+        resetMultiResultUI();   // ✅ clear old result
+        fakeMultiPredict();
+    } else {
+        fakeSinglePredict();
+    }
+});
+
+
+function fakeSinglePredict() {
+    showLoading();
+    setTimeout(() => {
+        renderPrediction({
+            prediction: 7,
+            confidence: 92.4,
+            probabilities: [0.01, 0.01, 0.02, 0.01, 0.03, 0.02, 0.03, 0.92, 0.02, 0.03]
+        });
+        hideLoading();
+    }, 800);
+}
+
+/*********************************************************
+ * Single Result UI
+ *********************************************************/
+function renderPrediction(data) {
+    document.getElementById("predictionEmpty").classList.add("hidden");
+    document.getElementById("predictionResult").classList.remove("hidden");
+
+    document.getElementById("resultDigit").textContent = data.prediction;
+    document.getElementById("topConfidence").textContent = data.confidence + "%";
+
+    renderConfidenceBars(data);
+    showFeedback();
+}
+
+function renderConfidenceBars(data) {
+    const container = document.getElementById("confidenceBars");
+    const section = document.getElementById("confidenceSection");
+
+    container.innerHTML = "";
+    section.classList.remove("hidden");
+
+    data.probabilities.forEach((value, digit) => {
+        const bar = document.createElement("div");
+        bar.className = "confidence-bar";
+        bar.innerHTML = `
+            <div class="bar-label">${digit}</div>
+            <div class="bar-container">
+                <div class="bar-fill ${digit === data.prediction ? "predicted" : ""}"
+                     style="width:${value * 100}%"></div>
+            </div>
+            <div class="bar-value ${digit === data.prediction ? "predicted" : ""}">
+                ${(value * 100).toFixed(1)}%
+            </div>`;
+        container.appendChild(bar);
+    });
+}
+
+function resetResultUI() {
+    document.getElementById("predictionEmpty").classList.remove("hidden");
+    document.getElementById("predictionResult").classList.add("hidden");
+    document.getElementById("confidenceSection").classList.add("hidden");
+}
+
+/*********************************************************
+ * Feedback
+ *********************************************************/
+function showFeedback() {
+    if (document.getElementById("multiResults").classList.contains("hidden")) {
+        document.getElementById("feedbackCard").classList.remove("hidden");
+    }
+}
+
+function resetFeedback() {
+    document.getElementById("feedbackCard").classList.add("hidden");
+    document.getElementById("feedbackSuccess").classList.add("hidden");
+    document.getElementById("feedbackIncorrect").classList.add("hidden");
+}
+
+document.getElementById("feedbackYes").onclick = () => {
+    document.getElementById("feedbackSuccess").classList.remove("hidden");
+};
+document.getElementById("feedbackNo").onclick = () => {
+    document.getElementById("feedbackIncorrect").classList.remove("hidden");
+};
+
+/*********************************************************
+ * MULTI DIGIT MODE
+ *********************************************************/
+const multiToggleBtn = document.getElementById("multiModeBtn");
+
+multiToggleBtn.addEventListener("click", togglePredictionMode);
+
+function togglePredictionMode() {
+    isMultiMode = !isMultiMode;
+
+    if (isMultiMode) {
+        // MULTI DIGIT MODE
+        canvasContainer.classList.add("multi-mode");
+        resizeCanvas(600);
+
+        multiToggleBtn.innerHTML = `
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="14" height="14"></rect>
+            </svg>
+            Predict Single Digit
+        `;
+
+        modeBadge.textContent = "Multiple Digit Mode";
+        currentModeMetric.textContent = "Multiple";
+
+        singleResults.classList.add("hidden");
+        multiResults.classList.remove("hidden");
+
+    } else {
+        // SINGLE DIGIT MODE
+        canvasContainer.classList.remove("multi-mode");
+        resizeCanvas(280);
+
+        multiToggleBtn.innerHTML = `
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            Predict Multiple Digits
+        `;
+
+        modeBadge.textContent = "Single Digit Mode";
+        currentModeMetric.textContent = "Single";
+
+        multiResults.classList.add("hidden");
+        singleResults.classList.remove("hidden");
+    }
+
+    clearCanvas();
+    disablePredict();
+    resetResultUI();
+    resetMultiResultUI();
+    resetFeedback();
+    canvasGuide.classList.remove("hidden");
+}
+
+
+function clearCanvas() {
+    // Background
+    ctx.save();
+    ctx.fillStyle = "black";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    // Brush
+    ctx.strokeStyle = BRUSH_COLOR;
+}
+
+
+
+/*********************************************************
+ * MULTI DIGIT (Dummy)
+ *********************************************************/
+function fakeMultiPredict() {
+    showLoading();
+    setTimeout(() => {
+        renderMultiDigitResult({
+            sequence: "507",
+            digits: [
+                { digit: 5, confidence: 0.91 },
+                { digit: 0, confidence: 0.88 },
+                { digit: 7, confidence: 0.94 }
+            ]
+        });
+        hideLoading();
+    }, 800);
+}
+
+function renderMultiDigitResult(data) {
+    document.getElementById("pred").textContent = data.sequence;
+    const bars = document.getElementById("bars");
+    bars.innerHTML = "";
+
+    data.digits.forEach((item, i) => {
+        const div = document.createElement("div");
+        div.style.marginBottom = "10px";
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;">
+                <strong>Digit ${i + 1}: ${item.digit}</strong>
+                <span>${(item.confidence * 100).toFixed(1)}%</span>
+            </div>
+            <div style="height:6px;background:#333;border-radius:4px;">
+                <div style="
+                    width:${item.confidence * 100}%;
+                    height:100%;
+                    background:linear-gradient(90deg,#ff6600,#ff983f);
+                    border-radius:4px;">
+                </div>
+            </div>`;
+        bars.appendChild(div);
+    });
+
+    document.getElementById("feedbackCard").classList.add("hidden");
+}
+
+
+function resetMultiResultUI() {
+    document.getElementById("pred").textContent = "";
+    document.getElementById("bars").innerHTML = "";
+}
+
+
+
+
+
+/*********************************************************
+ * API call for Prediction -Single
  *********************************************************/
 
 /*
@@ -129,225 +377,30 @@ const res = await fetch("/predict", {
 
 */
 
-/*********************************************************
- * Dummy Prediction (Frontend Testing)
- *********************************************************/
-predictBtn.addEventListener("click", fakePredict);
-
-function fakePredict() {
-    showLoading();
-
-    setTimeout(() => {
-        const dummyData = {
-            prediction: 7,
-            confidence: 92.4,
-            probabilities: [0.01, 0.01, 0.02, 0.01, 0.03, 0.02, 0.03, 0.92, 0.02, 0.03]
-        };
-
-        renderPrediction(dummyData);
-        hideLoading();
-    }, 800);
-}
-
-/*********************************************************
- * Render Prediction UI
- *********************************************************/
-function renderPrediction(data) {
-    document.getElementById("predictionEmpty").classList.add("hidden");
-    document.getElementById("predictionResult").classList.remove("hidden");
-
-    document.getElementById("resultDigit").textContent = data.prediction;
-    document.getElementById("topConfidence").textContent = data.confidence + "%";
-
-    renderConfidenceBars(data);
-    showFeedback();
-}
-
-/*********************************************************
- * Confidence Bars
- *********************************************************/
-function renderConfidenceBars(data) {
-    const container = document.getElementById("confidenceBars");
-    const section = document.getElementById("confidenceSection");
-
-    container.innerHTML = "";
-    section.classList.remove("hidden");
-
-    data.probabilities.forEach((value, digit) => {
-        const bar = document.createElement("div");
-        bar.className = "confidence-bar";
-
-        bar.innerHTML = `
-            <div class="bar-label">${digit}</div>
-            <div class="bar-container">
-                <div class="bar-fill ${digit === data.prediction ? "predicted" : ""}"
-                     style="width:${value * 100}%"></div>
-            </div>
-            <div class="bar-value ${digit === data.prediction ? "predicted" : ""}">
-                ${(value * 100).toFixed(1)}%
-            </div>
-        `;
-
-        container.appendChild(bar);
-    });
-}
-
-/*********************************************************
- * Reset Result UI
- *********************************************************/
-function resetResultUI() {
-    document.getElementById("predictionEmpty").classList.remove("hidden");
-    document.getElementById("predictionResult").classList.add("hidden");
-    document.getElementById("confidenceSection").classList.add("hidden");
-}
 
 
-/*********************************************************
- * Feed Back shows
- *********************************************************/
+/* ===============================
+   Backend Prediction Call  - Multiple
+================================ */
 
-function showFeedback() {
-    const feedback = document.getElementById("feedbackCard");
-    const multiResults = document.getElementById("multiResults");
+/*
+async function predict() {
+    try {
+        const dataURL = canvas.toDataURL('image/png');
 
-    // Show feedback ONLY when multiResults is hidden (single digit mode)
-    if (multiResults.classList.contains("hidden")) {
-        feedback.classList.remove("hidden");
+        const res = await fetch('/predict', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: dataURL })
+        });
+
+        const json = await res.json();
+        if (json.error) throw new Error(json.error);
+
+        setPrediction(json);
+    } catch (err) {
+        console.error('Prediction error:', err);
     }
 }
 
-function resetFeedback() {
-    document.getElementById("feedbackCard").classList.add("hidden");
-    document.getElementById("feedbackSuccess").classList.add("hidden");
-}
-
-const feedbackYes = document.getElementById("feedbackYes");
-const feedbackNo = document.getElementById("feedbackNo");
-
-const feedbackSuccess = document.getElementById("feedbackSuccess");
-const feedbackIncorrect = document.getElementById("feedbackIncorrect");
-
-// YES → success
-feedbackYes.addEventListener("click", () => {
-    feedbackSuccess.classList.remove("hidden");
-    feedbackIncorrect.classList.add("hidden");
-});
-
-// NO → incorrect
-feedbackNo.addEventListener("click", () => {
-    feedbackIncorrect.classList.remove("hidden");
-    feedbackSuccess.classList.add("hidden");
-});
-
-
-/*********************************************************
- * Multi-Digits Feature
- *********************************************************/
-
-const multiToggleBtn = document.getElementById("multiModeBtn");
-
-const singleResults = document.getElementById("singleResults");
-const multiResults = document.getElementById("multiResults");
-
-const modeBadge = document.getElementById("modeBadge");
-const currentModeMetric = document.getElementById("currentModeMetric");
-
-let isMultiMode = false;
-multiToggleBtn.addEventListener("click", togglePredictionMode);
-
-
-// Increase Canvas width for multi-digits 
-
-const canvasContainer = document.getElementById("canvasContainer");
-
-if (multiToggleBtn) {
-    multiToggleBtn.addEventListener("click", togglePredictionMode);
-}
-
-function togglePredictionMode() {
-    isMultiMode = !isMultiMode;
-
-    resizeCanvasForMode(); // ✅ correct position
-
-    if (isMultiMode) {
-        canvasContainer.classList.add("multi-mode");
-        multiResults.classList.remove("hidden");
-        singleResults.classList.add("hidden");
-
-        multiToggleBtn.textContent = "Predict Single Digit";
-        predictBtn.textContent = "Predict Multiple Digits";
-
-        modeBadge.textContent = "Multiple Digit Mode";
-        currentModeMetric.textContent = "Multiple";
-    } else {
-        canvasContainer.classList.remove("multi-mode");
-        multiResults.classList.add("hidden");
-        singleResults.classList.remove("hidden");
-
-        multiToggleBtn.textContent = "Predict Multiple Digits";
-        predictBtn.textContent = "Predict Digit";
-
-        modeBadge.textContent = "Single Digit Mode";
-        currentModeMetric.textContent = "Single";
-    }
-}
-
-
-const drawingCanvas = document.querySelector("#drawingCanvas")
-
-function resizeCanvasForMode() {
-    const ratio = window.devicePixelRatio || 1;
-    const cssWidth = isMultiMode ? 600 : 280;
-    const cssHeight = 280;
-
-    // Save drawing
-    const temp = document.createElement("canvas");
-    temp.width = canvas.width;
-    temp.height = canvas.height;
-    temp.getContext("2d").drawImage(canvas, 0, 0);
-
-    // Resize canvas (resets state)
-    canvas.width = cssWidth * ratio;
-    canvas.height = cssHeight * ratio;
-
-    canvas.style.width = cssWidth + "px";
-    canvas.style.height = cssHeight + "px";
-
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-
-    // Background
-    ctx.fillStyle = "black";
-    ctx.fillRect(0, 0, cssWidth, cssHeight);
-
-    // Restore drawing
-    ctx.drawImage(
-        temp,
-        0, 0, temp.width, temp.height,
-        0, 0, cssWidth, cssHeight
-    );
-
-    // ✅ RESTORE BRUSH STATE
-    ctx.strokeStyle = "white";
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.lineWidth = brushSize;
-}
-
-
-/*********************************************************
- * Multi Prediction Show --> multi.js
- *********************************************************/
-
-
-/*********************************************************
- * Loading Overlay
- *********************************************************/
-const loader = document.getElementById("loadingOverlay");
-
-function showLoading() {
-    loader.classList.remove("hidden");
-}
-
-function hideLoading() {
-    loader.classList.add("hidden");
-}
+*/
