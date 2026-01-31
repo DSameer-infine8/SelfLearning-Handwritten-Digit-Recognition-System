@@ -16,6 +16,7 @@ const BASE_SIZE = 280;
 const BRUSH_COLOR = "white";
 
 
+
 function initCanvas(width = BASE_SIZE, height = BASE_SIZE) {
     canvas.width = width * ratio;
     canvas.height = height * ratio;
@@ -216,8 +217,12 @@ function resetResultUI() {
 /*********************************************************
  * Feedback
  *********************************************************/
+/*********************************************************
+ * Feedback (Single Digit ONLY)
+ *********************************************************/
 function showFeedback() {
-    if (document.getElementById("multiResults").classList.contains("hidden")) {
+    // Show feedback only in SINGLE digit mode
+    if (!isMultiMode) {
         document.getElementById("feedbackCard").classList.remove("hidden");
     }
 }
@@ -228,9 +233,42 @@ function resetFeedback() {
     document.getElementById("feedbackIncorrect").classList.add("hidden");
 }
 
-document.getElementById("feedbackYes").onclick = () => {
-    document.getElementById("feedbackSuccess").classList.remove("hidden");
+/**
+ * YES – Correct
+ * → Send feedback to backend
+ */
+document.getElementById("feedbackYes").onclick = async () => {
+    try {
+        // Safety: only single digit feedback allowed
+        if (isMultiMode) return;
+
+        const imageBase64 = canvas.toDataURL("image/png");
+
+        const predictedDigit = document.getElementById("resultDigit").textContent;
+
+        await fetch("/feedback", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                image: imageBase64,
+                label: Number(predictedDigit),
+                mode: "single"
+            })
+        });
+
+        document.getElementById("feedbackSuccess").classList.remove("hidden");
+
+    } catch (err) {
+        console.error("Feedback error:", err);
+    }
 };
+
+/**
+ * NO – Incorrect
+ * (UI only, no backend save)
+ */
 document.getElementById("feedbackNo").onclick = () => {
     document.getElementById("feedbackIncorrect").classList.remove("hidden");
 };
