@@ -13,7 +13,7 @@ let isMultiMode = false;
 /* High DPI */
 const ratio = window.devicePixelRatio || 1;
 const BASE_SIZE = 280;
-const BRUSH_COLOR = "white";
+const BRUSH_COLOR = "black";
 
 
 
@@ -25,7 +25,7 @@ function initCanvas(width = BASE_SIZE, height = BASE_SIZE) {
 
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-    ctx.fillStyle = "black";
+    ctx.fillStyle = "white";
     ctx.fillRect(0, 0, width, height);
 
     ctx.strokeStyle = BRUSH_COLOR;
@@ -48,7 +48,7 @@ function resizeCanvas(width, height = 280) {
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 
     // Background
-    ctx.fillStyle = "black";
+    ctx.fillStyle = "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Brush reset
@@ -56,6 +56,17 @@ function resizeCanvas(width, height = 280) {
     ctx.lineWidth = brushSize;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+}
+
+function getCanvasImage() {
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = 280;
+    tempCanvas.height = 280;
+
+    const tctx = tempCanvas.getContext("2d");
+    tctx.drawImage(canvas, 0, 0, 280, 280);
+
+    return tempCanvas.toDataURL("image/png");
 }
 
 
@@ -152,23 +163,55 @@ function hideLoading() {
 predictBtn.addEventListener("click", () => {
     if (isMultiMode) {
         resetMultiResultUI();   // ✅ clear old result
-        fakeMultiPredict();
+        //fakeMultiPredict();
+        realtimeMultiPredict();
     } else {
-        fakeSinglePredict();
+        singlePredict();
     }
 });
 
 
-function fakeSinglePredict() {
-    showLoading();
-    setTimeout(() => {
-        renderPrediction({
-            prediction: 7,
-            confidence: 92.4,
-            probabilities: [0.01, 0.01, 0.02, 0.01, 0.03, 0.02, 0.03, 0.92, 0.02, 0.03]
+async function singlePredict() {
+    try {
+        showLoading();
+
+        // Capture canvas image
+        const image = getCanvasImage();
+
+
+        // Call backend API
+        const res = await fetch("/predict", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ image })
         });
+
+        if (!res.ok) {
+            throw new Error("Prediction request failed");
+        }
+
+        const data = await res.json();
+
+        // Safety check
+        if (data.error) {
+            throw new Error(data.error);
+        }
+
+        // Send result to UI renderer
+        renderPrediction({
+            prediction: data.prediction,
+            confidence: data.confidence,
+            probabilities: data.probabilities
+        });
+
+    } catch (err) {
+        console.error("Single prediction error:", err);
+        alert("Prediction failed. Please try again.");
+    } finally {
         hideLoading();
-    }, 800);
+    }
 }
 
 /*********************************************************
@@ -335,7 +378,7 @@ function togglePredictionMode() {
 function clearCanvas() {
     // Background
     ctx.save();
-    ctx.fillStyle = "black";
+    ctx.fillStyle = "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
 
@@ -347,7 +390,7 @@ function clearCanvas() {
 
 /*********************************************************
  * MULTI DIGIT (Dummy)
- *********************************************************/
+ ********************************************************
 function fakeMultiPredict() {
     showLoading();
     setTimeout(() => {
@@ -362,6 +405,34 @@ function fakeMultiPredict() {
         hideLoading();
     }, 800);
 }
+*/
+
+async function realtimeMultiPredict() {
+    if (!isMultiMode) return;
+
+    try {
+        showLoading();
+
+        const image = canvas.toDataURL("image/png");
+
+        const res = await fetch("/predict-multi", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ image })
+        });
+
+        const data = await res.json();
+        if (data.error) return;
+
+        renderMultiDigitResult(data);
+
+    } catch (err) {
+        console.error("Realtime multi error:", err);
+    } finally {
+        hideLoading();
+    }
+}
+
 
 function renderMultiDigitResult(data) {
     document.getElementById("pred").textContent = data.sequence;
@@ -442,3 +513,6 @@ async function predict() {
 }
 
 */
+
+
+
