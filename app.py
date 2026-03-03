@@ -18,7 +18,7 @@ app = Flask(__name__)
 # ==============================
 MODEL_PATH = "models/best_cnn.h5"
 USER_DATA_PATH = "data/user_confirmed"
-RETRAIN_THRESHOLD = 12
+RETRAIN_THRESHOLD = 10
 
 model = load_model(MODEL_PATH)
 retraining_in_progress = False
@@ -32,7 +32,7 @@ def load_latest_model():
     model_files = glob.glob("models/*.h5")
     latest_model = max(model_files, key=os.path.getctime)
     model = load_model(latest_model)
-    print(f"✅ Loaded latest model: {latest_model}")
+    print(f" Loaded latest model: {latest_model}")
 
 
 # ==============================
@@ -167,7 +167,7 @@ def feedback():
         print(f" Total user confirmed images: {total_images}")
 
         # Trigger retraining
-        if total_images >= RETRAIN_THRESHOLD and not retraining_in_progress:
+        if total_images % RETRAIN_THRESHOLD == 0 and not retraining_in_progress:
             print(" Threshold reached. Triggering retraining...")
             thread = threading.Thread(target=retrain_model_background)
             thread.start()

@@ -10,7 +10,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint
 
 
 # ==============================
-# 1️⃣ Load and Preprocess MNIST
+# 1️. Load and Preprocess MNIST
 # ==============================
 
 def load_mnist_data():
@@ -35,7 +35,7 @@ def load_mnist_data():
 
 
 # ==============================
-# 2️⃣ Build CNN Model
+# 2️. Build CNN Model
 # ==============================
 
 def build_model():
@@ -92,7 +92,7 @@ def build_model():
 
 
 # ==============================
-# 3️⃣ Train Model
+# 3️. Train Model
 # ==============================
 
 def train_model(model, x_train, y_train, x_test, y_test, epochs=3):
@@ -121,7 +121,7 @@ def train_model(model, x_train, y_train, x_test, y_test, epochs=3):
 
 
 # ==============================
-# 4️⃣ Main Function
+# 4️. Main Function
 # ==============================
 
 def main():
