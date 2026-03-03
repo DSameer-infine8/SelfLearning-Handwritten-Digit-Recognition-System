@@ -39,32 +39,55 @@ def load_mnist_data():
 # ==============================
 
 def build_model():
-    print("Building CNN model...")
 
-    model = models.Sequential()
-
-    model.add(layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)))
-    model.add(layers.MaxPooling2D((2, 2)))
-
-    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
-    model.add(layers.MaxPooling2D((2, 2)))
-
-    model.add(layers.Conv2D(64, (3, 3), activation='relu'))
-
-    model.add(layers.Flatten())
-
-    model.add(layers.Dense(64, activation='relu'))
-    model.add(layers.Dropout(0.3))
-
-    model.add(layers.Dense(10, activation='softmax'))
-
-    model.compile(
-        optimizer='adam',
-        loss='categorical_crossentropy',
-        metrics=['accuracy']
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import (
+        Conv2D,
+        MaxPooling2D,
+        Flatten,
+        Dense,
+        Dropout,
+        BatchNormalization,
+        PReLU
     )
 
-    print("Model built successfully.")
+    model = Sequential([
+
+        # -------- Block 1 --------
+        Conv2D(32, (3,3), padding="same", input_shape=(28,28,1)),
+        BatchNormalization(),
+        PReLU(),
+        MaxPooling2D((2,2)),
+
+        # -------- Block 2 --------
+        Conv2D(64, (3,3), padding="same"),
+        BatchNormalization(),
+        PReLU(),
+        MaxPooling2D((2,2)),
+
+        # -------- Block 3 --------
+        Conv2D(128, (3,3), padding="same"),
+        BatchNormalization(),
+        PReLU(),
+        MaxPooling2D((2,2)),  # 28 → 14 → 7 → 3
+
+        # -------- Fully Connected --------
+        Flatten(),
+
+        Dense(128),
+        BatchNormalization(),
+        PReLU(),
+        Dropout(0.4),
+
+        Dense(10, activation="softmax")
+    ])
+
+    model.compile(
+        optimizer="adam",
+        loss="categorical_crossentropy",
+        metrics=["accuracy"]
+    )
+
     return model
 
 
