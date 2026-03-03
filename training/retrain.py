@@ -1,0 +1,148 @@
+# retrain.py
+
+import os
+import cv2
+import numpy as np
+import tensorflow as tf
+from datetime import datetime
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.models import load_model
+from tensorflow.keras.utils import to_categorical
+
+
+# ========================================
+# 1️⃣ Load MNIST Dataset
+# ========================================
+
+def load_mnist_data():
+    print("Loading MNIST dataset...")
+
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+    x_train = x_train / 255.0
+    x_test = x_test / 255.0
+
+    x_train = x_train.reshape(-1, 28, 28, 1)
+    x_test = x_test.reshape(-1, 28, 28, 1)
+
+    y_train = to_categorical(y_train, 10)
+    y_test = to_categorical(y_test, 10)
+
+    return x_train, y_train, x_test, y_test
+
+
+# ========================================
+# 2️⃣ Load User Confirmed Data
+# ========================================
+
+def load_user_data(path="data/user_confirmed"):
+
+    images = []
+    labels = []
+
+    if not os.path.exists(path):
+        print("User data folder not found.")
+        return np.array([]), np.array([])
+
+    for digit in os.listdir(path):
+        digit_path = os.path.join(path, digit)
+
+        if not os.path.isdir(digit_path):
+            continue
+
+        for file in os.listdir(digit_path):
+
+            img_path = os.path.join(digit_path, file)
+
+            img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+            img = cv2.resize(img, (28, 28))
+
+            img = img / 255.0
+            img = img.reshape(28, 28, 1)
+
+            images.append(img)
+            labels.append(int(digit))
+
+    if len(images) == 0:
+        return np.array([]), np.array([])
+
+    images = np.array(images)
+    labels = to_categorical(np.array(labels), 10)
+
+    print(f"Loaded {len(images)} user images.")
+    return images, labels
+
+
+# ========================================
+# 3️⃣ Generate Version Name
+# ========================================
+
+def generate_version_name():
+
+    now = datetime.now().strftime("%Y%m%d_%H%M%S")
+    version_name = f"best_cnn_v_{now}.h5"
+
+    return version_name
+
+
+# ========================================
+# 4️⃣ Retrain Model
+# ========================================
+
+def retrain_model():
+
+    print("Starting Retraining Process...")
+
+    # Load existing model
+    model_path = "models/best_cnn.h5"
+
+    if not os.path.exists(model_path):
+        print("Base model not found!")
+        return
+
+    model = load_model(model_path)
+
+    # Load MNIST
+    x_train, y_train, x_test, y_test = load_mnist_data()
+
+    # Load user data
+    user_x, user_y = load_user_data()
+
+    if user_x.size == 0:
+        print("No user data available for retraining.")
+        return
+
+    # Combine datasets
+    x_train = np.concatenate((x_train, user_x))
+    y_train = np.concatenate((y_train, user_y))
+
+    print("Combined MNIST + User Data")
+    print(f"New Training Size: {len(x_train)} samples")
+
+    # Retrain
+    model.fit(
+        x_train,
+        y_train,
+        epochs=5,          # small epochs for incremental learning
+        batch_size=64,
+        validation_data=(x_test, y_test),
+        verbose=1
+    )
+
+    # Save with version name
+    version_name = generate_version_name()
+
+    save_path = os.path.join("models", version_name)
+    model.save(save_path)
+
+    print(f"New retrained model saved as: {save_path}")
+
+    print("Retraining Completed Successfully!")
+
+
+# ========================================
+# 5️⃣ Main
+# ========================================
+
+if __name__ == "__main__":
+    retrain_model()
