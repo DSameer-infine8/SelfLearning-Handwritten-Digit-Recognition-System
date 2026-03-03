@@ -34,8 +34,7 @@ def load_mnist_data():
 # ========================================
 # 2️⃣ Load User Confirmed Data
 # ========================================
-
-def load_user_data(path="data/user_confirmed"):
+def load_user_data(path="../data/user_confirmed"):
 
     images = []
     labels = []
@@ -55,8 +54,25 @@ def load_user_data(path="data/user_confirmed"):
             img_path = os.path.join(digit_path, file)
 
             img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
-            img = cv2.resize(img, (28, 28))
 
+            # 1️⃣ Invert image (important)
+            img = 255 - img
+
+            # 2️⃣ Threshold
+            _, img = cv2.threshold(img, 50, 255, cv2.THRESH_BINARY)
+
+            # 3️⃣ Crop to bounding box
+            coords = cv2.findNonZero(img)
+            x, y, w, h = cv2.boundingRect(coords)
+            img = img[y:y+h, x:x+w]
+
+            # 4️⃣ Resize while keeping aspect ratio
+            img = cv2.resize(img, (20, 20))
+
+            # 5️⃣ Pad to 28x28
+            img = np.pad(img, ((4,4),(4,4)), "constant")
+
+            # 6️⃣ Normalize
             img = img / 255.0
             img = img.reshape(28, 28, 1)
 
@@ -70,6 +86,7 @@ def load_user_data(path="data/user_confirmed"):
     labels = to_categorical(np.array(labels), 10)
 
     print(f"Loaded {len(images)} user images.")
+
     return images, labels
 
 
@@ -94,13 +111,21 @@ def retrain_model():
     print("Starting Retraining Process...")
 
     # Load existing model
-    model_path = "models/best_cnn.h5"
+    model_path = "../models/best_cnn.h5"
 
     if not os.path.exists(model_path):
         print("Base model not found!")
         return
 
+    
     model = load_model(model_path)
+
+    # 🔥 VERY IMPORTANT FIX
+    model.compile(
+    optimizer="adam",
+    loss="categorical_crossentropy",
+    metrics=["accuracy"]
+)
 
     # Load MNIST
     x_train, y_train, x_test, y_test = load_mnist_data()
@@ -132,7 +157,7 @@ def retrain_model():
     # Save with version name
     version_name = generate_version_name()
 
-    save_path = os.path.join("models", version_name)
+    save_path = os.path.join("../models", version_name)
     model.save(save_path)
 
     print(f"New retrained model saved as: {save_path}")

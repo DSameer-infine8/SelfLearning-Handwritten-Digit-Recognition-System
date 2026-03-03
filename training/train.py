@@ -95,12 +95,12 @@ def build_model():
 # 3️⃣ Train Model
 # ==============================
 
-def train_model(model, x_train, y_train, x_test, y_test, epochs=10):
+def train_model(model, x_train, y_train, x_test, y_test, epochs=3):
 
     print("Training started...")
 
     checkpoint = ModelCheckpoint(
-        filepath="models/best_cnn.h5",
+        filepath="../models/best_cnn5.h5",
         monitor="val_accuracy",
         save_best_only=True,
         verbose=1
@@ -116,6 +116,7 @@ def train_model(model, x_train, y_train, x_test, y_test, epochs=10):
     )
 
     print("Training completed.")
+    print("Best model started saving in models/best_cnn5.h5")
     return history
 
 
@@ -133,9 +134,9 @@ def main():
 
     model = build_model()
 
-    train_model(model, x_train, y_train, x_test, y_test, epochs=10)
+    train_model(model, x_train, y_train, x_test, y_test, epochs=3)
 
-    print("Best model saved in models/best_cnn.h5")
+    print("Best model saved in models/best_cnn5.h5")
 
 
 if __name__ == "__main__":
