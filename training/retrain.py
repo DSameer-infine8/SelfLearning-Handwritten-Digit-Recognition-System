@@ -148,7 +148,7 @@ def retrain_model():
     model.fit(
         x_train,
         y_train,
-        epochs=5,          # small epochs for incremental learning
+        epochs=10,          # small epochs for incremental learning
         batch_size=64,
         validation_data=(x_test, y_test),
         verbose=1
