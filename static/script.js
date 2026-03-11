@@ -467,7 +467,36 @@ function resetMultiResultUI() {
     document.getElementById("bars").innerHTML = "";
 }
 
+/*********************************************************
+ * COPY PREDICTION TO CLIPBOARD
+ *********************************************************/
+function copyPrediction() {
 
+    const prediction = document.getElementById("pred").textContent;
+
+    if (!prediction) {
+        alert("No prediction to copy!");
+        return;
+    }
+
+    navigator.clipboard.writeText(prediction)
+        .then(() => {
+
+            // Optional UI feedback
+            const btn = document.getElementById("copyPredictionBtn");
+            const oldIcon = btn.innerHTML;
+
+            btn.innerHTML = "✅";
+
+            setTimeout(() => {
+                btn.innerHTML = oldIcon;
+            }, 1500);
+
+        })
+        .catch(err => {
+            console.error("Copy failed:", err);
+        });
+}
 
 
 
