@@ -130,7 +130,7 @@ def predict_multi():
 
             probs = model.predict(processed)[0]
             digit = int(np.argmax(probs))
-            confidence = round(float(np.max(probs)) * 100, 2)
+            confidence = round(float(np.max(probs)), 2)
 
             sequence += str(digit)
             digits_output.append({

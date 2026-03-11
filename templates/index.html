@@ -15,7 +15,6 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/static/style.css" />
-
   </head>
 
   <body>
@@ -172,74 +171,8 @@
           </section>
 
           <!-- Right Panel: Results & Feedback -->
+
           <section class="results-panel">
-            <!-- Single Digit Results -->
-            <div class="results-card card" id="singleResults">
-              <div class="panel-header">
-                <h2 class="panel-title">Prediction Results</h2>
-                <p class="panel-description">
-                  Neural network classification output
-                </p>
-              </div>
-
-              <!-- Main Prediction Display -->
-              <div class="prediction-zone" id="predictionZone">
-                <div class="prediction-empty" id="predictionEmpty">
-                  <div class="empty-state">
-                    <svg
-                      class="empty-icon"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                    >
-                      <circle cx="11" cy="11" r="8" />
-                      <path d="M21 21l-4.35-4.35" />
-                      <circle cx="11" cy="11" r="3" />
-                    </svg>
-                    <p class="empty-text">Awaiting prediction...</p>
-                  </div>
-                </div>
-
-                <div class="prediction-result hidden" id="predictionResult">
-                  <div class="result-header">
-                    <span class="result-label">Predicted Digit</span>
-                    <span class="result-confidence" id="topConfidence">0%</span>
-                  </div>
-                  <div class="result-digit" id="resultDigit">0</div>
-                </div>
-              </div>
-
-              <!-- Confidence Distribution -->
-              <div class="confidence-section hidden" id="confidenceSection">
-                <h3 class="confidence-title">Confidence Distribution</h3>
-                <div class="confidence-bars" id="confidenceBars">
-                  <!-- Dynamically generated confidence bars -->
-                </div>
-              </div>
-            </div>
-
-            <!-- Multiple Digits Results -->
-            <div class="results-card card hidden" id="multiResults">
-              <div class="panel-header">
-                <h2 class="panel-title">Multiple Digit Recognition</h2>
-                <p class="panel-description">Sequence detection results</p>
-              </div>
-
-              <div class="multi-prediction-zone">
-                <div class="sequence-display" id="sequenceDisplay">
-                  <div class="panel">
-                    <div class="big">Prediction: <span id="pred"></span></div>
-                    <div id="bars" class="bars"></div>
-                  </div>
-                </div>
-
-                <div class="digit-cards" id="digitCards">
-                  <!-- Dynamically generated digit cards -->
-                </div>
-              </div>
-            </div>
-
             <!-- Feedback System -->
             <div class="feedback-card card hidden" id="feedbackCard">
               <div class="panel-header">
@@ -311,6 +244,72 @@
                     Thanks! Your feedback will help retrain and improve the
                     model.
                   </p>
+                </div>
+              </div>
+            </div>
+            <!-- Single Digit Results -->
+            <div class="results-card card" id="singleResults">
+              <div class="panel-header">
+                <h2 class="panel-title">Prediction Results</h2>
+                <p class="panel-description">
+                  Neural network classification output
+                </p>
+              </div>
+
+              <!-- Main Prediction Display -->
+              <div class="prediction-zone" id="predictionZone">
+                <div class="prediction-empty" id="predictionEmpty">
+                  <div class="empty-state">
+                    <svg
+                      class="empty-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <circle cx="11" cy="11" r="8" />
+                      <path d="M21 21l-4.35-4.35" />
+                      <circle cx="11" cy="11" r="3" />
+                    </svg>
+                    <p class="empty-text">Awaiting prediction...</p>
+                  </div>
+                </div>
+
+                <div class="prediction-result hidden" id="predictionResult">
+                  <div class="result-header">
+                    <span class="result-label">Predicted Digit</span>
+                    <span class="result-confidence" id="topConfidence">0%</span>
+                  </div>
+                  <div class="result-digit" id="resultDigit">0</div>
+                </div>
+              </div>
+
+              <!-- Confidence Distribution -->
+              <div class="confidence-section hidden" id="confidenceSection">
+                <h3 class="confidence-title">Confidence Distribution</h3>
+                <div class="confidence-bars" id="confidenceBars">
+                  <!-- Dynamically generated confidence bars -->
+                </div>
+              </div>
+            </div>
+
+            <!-- Multiple Digits Results -->
+            <div class="results-card card hidden" id="multiResults">
+              <div class="panel-header">
+                <h2 class="panel-title">Multiple Digit Recognition</h2>
+                <p class="panel-description">Sequence detection results</p>
+              </div>
+
+              <div class="multi-prediction-zone">
+                <div class="sequence-display" id="sequenceDisplay">
+                  <div class="panel">
+                    <div class="big">Prediction: <span id="pred"></span></div>
+                    <div id="bars" class="bars"></div>
+                  </div>
+                </div>
+
+                <div class="digit-cards" id="digitCards">
+                  <!-- Dynamically generated digit cards -->
                 </div>
               </div>
             </div>
